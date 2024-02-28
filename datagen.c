@@ -42,6 +42,7 @@ Example:
 #include "Lab3IO.h"
 
 #define DECIMAL 100.0
+#define random() rand()
 
 int MatMul(int, double**, double**, double**);
 int MatGen(int, double**, double);
