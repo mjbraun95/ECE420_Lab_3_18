@@ -1,0 +1,473 @@
+datagen.c:
+/*
+Generate a non-singular matrix and a vector and save the output. (the values are in precision double)
+
+-----
+Compiling:
+    > gcc datagen.c Lab3IO.c -o datagen
+
+-----
+Synopsis:
+    datagen [-sbpo]
+
+-----
+Options:
+    -s    specify the size of the matrices (default 100) 
+    -b    upper bound of the absolute value of the most elements (default 100)
+    -p    print the result
+    -o    specify the output path (default "./data_input") 
+
+-----
+Outputs:
+    Output file:
+    data_input
+
+-----
+Error returns:
+    -1    unexpected options
+    -2   fail to open file 
+
+-----
+Example:
+    >datagen 
+    generate 100 by 100 non singular double matrix and a vector b with most elements between -100 and 100 in "./data_input"
+   
+    >datagen -s 1000 -b 10 -p
+    generate 1000 by 1000 non singular double matrix and a vector b with most elements between -10 and 10 in "./data_input", and print the result on the screen.
+*/
+
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <time.h>
+#include "Lab3IO.h"
+
+#define DECIMAL 100.0
+
+int MatMul(int, double**, double**, double**);
+int MatGen(int, double**, double);
+int GenPerm(int, double**);
+
+int main (int argc, char* argv[]){   
+    int i, j, option;
+    int size = 100;
+    int b_print = 0;
+    int range = 100;
+    double **A, **T, **S;
+    double *b;
+    double temp;
+    char* OUTPATH = "data_input";
+    FILE* fp;
+
+    srand(time(NULL));
+
+    while ((option = getopt(argc, argv, "s:b:po:")) != -1)
+        switch(option){
+            case 's': size = strtol(optarg, NULL, 10); break;
+            case 'b': range = strtol(optarg, NULL, 10);break;
+            case 'p': b_print = 1; break;
+            case 'o': OUTPATH = optarg; break;
+            case '?': printf("Unexpected Options. \n"); return -1;
+        }
+    
+    /*Generate the data*/
+    A = CreateMat(size, size);
+    T = CreateMat(size, size);
+    S = CreateMat(size, size);
+    b = malloc(size * sizeof(double));
+    for (i = 0; i < size; ++i)
+        for (j = 0; j < size; ++j){
+            A[i][j] = 0;
+            T[i][j] = 0;
+        }
+    MatGen(size, T, (double)range);
+    GenPerm(size, A);
+    MatMul(size, T, A, S);
+    for (i = 0; i < size; ++i){
+        temp = (double)(random() % (int)(range * DECIMAL)) / DECIMAL;
+        if (random() % 2)
+            temp *= -1;
+        b[i] = temp;
+    }
+    /*Output the data*/
+    if ((fp = fopen(OUTPATH,"w")) == NULL){
+        printf("Fail to open a file to save the data. \n");
+        return -2;
+    }
+    fprintf(fp, "%d\n\n", size);
+    for (i = 0; i < size; ++i){
+        for (j = 0; j < size; ++j)
+            fprintf(fp, "%lf\t", S[i][j]);
+        fprintf(fp, "\n");
+    }
+    fprintf(fp, "\n");
+    for (i = 0; i < size; ++i)
+        fprintf(fp, "%lf\n", b[i]);
+    fclose(fp);
+    /*Print the result if neccesary*/
+    if (b_print){
+        printf("The problem size is %d.\n", size);
+        printf("============\n The A is \n============\n");
+        PrintMat(S, size, size);
+        printf("============\n The b is \n============\n");
+        PrintVec(b, size);
+    }
+    DestroyMat(A, size);
+    DestroyMat(T, size);
+    DestroyMat(S, size);
+    free(b);
+    return 0;
+}
+
+int MatGen(int n, double** S, double range){
+    int i,j;
+    double temp;
+    /*Generate a random matrix*/
+    for (i = 0; i < n; ++i){
+        for (j = 0; j < n; ++j){
+            temp = (double)(random() % (int)(DECIMAL * range)) / DECIMAL;
+            if (random() % 2)
+                temp *= -1;
+            S[i][j] = temp;
+        }
+    }
+    /*Make it row dominant*/
+    for (i = 0; i < n; ++i){
+        temp = 0;
+        for (j = 0; j < n; ++j)
+            if (S[i][i] * S[i][j] > 0)
+                temp += S[i][j];
+            else
+                temp -= S[i][j];
+        S[i][i] += temp / n * 10;
+    }
+    return 0;
+}
+
+int MatMul(int n, double** A, double** T, double** S){
+    int i, j, k;
+    for (i = 0; i < n; ++i)
+        for (j = 0; j < n; ++j){
+            S[i][j]=0;
+            for (k = 0; k < n; ++k)
+                S[i][j] += A[i][k] * T[k][j];
+        }
+    return 0;
+}
+
+int GenPerm(int n, double** A){
+    int* flag;
+    int i, j, k;
+    int remain;
+    int index;
+    remain = n;
+    flag = malloc(n * sizeof(int));
+    for (i = 0; i < n; ++i)
+        flag[i] = 0;
+
+    for (i = 0; i < n; ++i){
+        index = random() % remain + 1;
+        j = 0; k = -1;
+        while (j < index){
+            ++k;
+            if (flag[k] == 0)
+                ++j;
+        }
+        A[i][k] = 1.0;
+        flag[k] = 1; 
+        --remain;
+    }
+    free(flag);
+    return 0;
+}
+
+Lab3IO.c:
+#include <stdio.h>
+#include <stdlib.h>
+#include "Lab3IO.h"
+
+int Lab3LoadInput(double ***A, int *size){
+/*
+    Allocate memory and load the input data for Lab 3. The returned matrix is the augmented size by (size+1) matrix [A|b]
+
+    -----
+    Input:
+    int ***A    pointer to the augmented matrix [A|b]
+    int *size   pointer to the rows of the augmented matrix [A|b]. (Number of columns will be 1 more)
+
+    Note: original files should be the output of the datagen.c with name "data_input" in the same folder
+
+    -----
+    Output:
+    Generated matrix will be passed back to the array *A, along with the matrix size in *size 
+
+    -----
+    Example:
+    An integer array pointer and a integer should be defined before calling this function:
+    int **A; int size; 
+    call this function as
+    Lab3LoadInput(&A, &size);
+*/
+
+    FILE* ip;
+    int i,j;
+
+    if ((ip = fopen("data_input","r")) == NULL){
+            printf("error opening the input data.\n");
+            return 1;
+    }
+    fscanf(ip, "%d\n\n", size);
+    (*A) = CreateMat(*size, (*size) + 1);
+    for (i = 0; i < *size; ++i){
+        for(j = 0; j < *size; ++j)
+            fscanf(ip, "%lf\t", &(*A)[i][j]);
+        fscanf(ip, "\n");
+    }
+    fscanf(ip, "\n");
+    for (i = 0; i < *size; ++i)
+        fscanf(ip, "%lf\n", &(*A)[i][(*size - 1) + 1]);
+    fclose(ip);
+    return 0;
+}
+
+int Lab3SaveOutput(double* x, int size, double Time){
+/*
+    Save the data to the file for Lab 3 
+
+    -----
+    Input:
+    double* x     pointer to the result vector 
+    int size      the vector size
+    double Time   calulation time
+    
+    -----
+    Output:
+    data_output the stored data
+
+    -----
+    Example:
+    Lab3SaveOutput(x, size, Time);
+*/
+
+    FILE* op;
+    int i;
+
+    if ((op = fopen("data_output","w")) == NULL){
+        printf("Error opening the output file.\n");
+        return 1;
+    }
+
+    fprintf(op, "%d\n", size);
+    for (i = 0; i < size; ++i)
+        fprintf(op, "%e\t", x[i]);
+    fprintf(op, "\n%lf", Time);
+    fclose(op);
+    return 0;
+}
+ 
+double** CreateMat(int NumRow, int NumCol){
+    /* Allocate memory for an array
+    -----
+    Input:
+        NumRow    Number of rows
+        NumCol    Number of columns
+    -----
+    Output:
+        ** A    pointer to the new int array
+    */
+    int i;
+    double ** A;
+
+    A = malloc(NumRow * sizeof(double*));
+    for (i = 0; i < NumRow; ++i){
+        A[i] = malloc(NumCol * sizeof(double));
+    }
+    return A;
+}
+ 
+int DestroyMat(double** A, int NumRow){
+    /* Free the memory
+    -----
+    Input:
+        NumRow    Number of rows
+    */
+    int i;
+    for (i = 0; i < NumRow; ++i){
+        free(A[i]);
+    }
+    free(A);
+    return 0;
+}
+
+int PrintMat(double** A, int NumRow, int NumCol){
+    /* Print an array
+    -----
+    Input:
+        A         pointer to the array
+        NumRow    Number of rows
+        NumCol    Number of columns
+    */
+    int i, j;
+    for (i = 0; i < NumRow; ++i){
+        for (j = 0; j < NumCol; ++j){
+            printf("%f\t", A[i][j]);
+        }
+        printf("\n");
+    }
+    return 0;
+}
+
+double* CreateVec(int size){
+    double *b;
+    b =  malloc(size * sizeof(double));
+    return b;
+}
+
+int PrintVec(double* b, int size){
+    int i;
+    for (i = 0; i< size; ++i){
+        printf("%f\n", b[i]);
+    }
+    return 0;
+}
+
+int DestroyVec(double* b){
+    free(b);
+    return 0;
+}
+
+Lab3IO.h:
+/*
+Header for the Lab 3 IO functions
+*/
+#ifndef LAB3_H_INCLUDE
+#define LAB3_H_INCLUDE
+
+int Lab3LoadInput(double ***A, int *size);
+int Lab3SaveOutput(double* x, int size, double time);
+
+double** CreateMat(int NumRow, int NumCol);
+int DestroyMat(double** A, int NumRow);
+int PrintMat(double** A, int NumRow, int NumCol);
+double* CreateVec(int size);
+int PrintVec(double* b, int size);
+int DestroyVec(double* b);
+#endif
+
+Makefile:
+all:
+	gcc -fopenmp solver.c Lab3IO.c -o solver
+
+ReadMe:
+Readme for ECE 420 Lab3 Script Kit
+Feb. 2024
+
+=====
+Overview:
+    There are two groups of scripts in this kit
+
+-----
+    Data generating program:
+    datagen.c      source file for the input date generation program
+
+-----
+    Important functions:
+    timer.h        macro definition for the time measurement
+    Lab3IO.h       header for the Lab3IO.c, needs to be included if call the IOs directly from Lab3IO.c
+    Lab3IO.c       source file for the IO functions, needs to be referred in the compiler line if the functions are called in the program
+=====
+Please also find the detailed instructions in the comments of the individual files.
+
+
+
+solver.c:
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "Lab3IO.h"
+#include <omp.h>
+
+int main(void) {
+    double** matrix;
+    int size;
+    int i, j, k;
+    double temp;
+
+    // Load the input data
+    if (Lab3LoadInput(&matrix, &size) != 0) {
+        fprintf(stderr, "Error loading input!\n");
+        return 1;
+    }
+
+    // Gauss-Jordan Elimination
+    for (k = 0; k < size; k++) {
+        #pragma omp parallel for private(j, temp)
+        for (i = k + 1; i < size; i++) {
+            temp = matrix[i][k] / matrix[k][k];
+            for (j = k; j < size + 1; j++) {
+                matrix[i][j] -= temp * matrix[k][j];
+            }
+        }
+    }
+
+    // Backward substitution
+    for (k = size - 1; k >= 0; k--) {
+        matrix[k][size] /= matrix[k][k];
+        matrix[k][k] = 1;
+        #pragma omp parallel for private(i, j)
+        for (i = k - 1; i >= 0; i--) {
+            matrix[i][size] -= matrix[i][k] * matrix[k][size];
+            matrix[i][k] = 0;
+        }
+    }
+
+    // Extract the solution
+    double* solution = (double*) malloc(sizeof(double) * size);
+    for (i = 0; i < size; i++) {
+        solution[i] = matrix[i][size];
+    }
+
+    // Save the solution and clean up
+    Lab3SaveOutput(solution, size);
+    for (i = 0; i < size; i++) {
+        free(matrix[i]);
+    }
+    free(matrix);
+    free(solution);
+
+    return 0;
+}
+
+
+timer.h:
+/*
+Macro for time measuring.
+
+To use this macro, you need to declare two double type variables 
+to store the start time and the end time. The macro GET_TIME() will
+return the time to the variable you put in. e.g., for your program, 
+you need to declare two variables first:
+double start, end;
+at where you want to record the starting time, put
+GET_TIME(start);
+at where you want to record the end time, put
+GET_TIME(end);
+Then the elapsed time would be
+end-start
+
+*/
+
+#ifndef _TIMER_H_
+#define _TIMER_H_
+
+#include <sys/time.h>
+
+#define GET_TIME(now) { \
+   struct timeval t; \
+   gettimeofday(&t, NULL); \
+   now = t.tv_sec + t.tv_usec/1000000.0; \
+}
+
+#endif
+
+

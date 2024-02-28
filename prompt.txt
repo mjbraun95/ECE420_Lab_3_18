@@ -1,0 +1,745 @@
+Here are some of my lab instructions:
+ECE 420 Parallel and Distributed Programming
+Lab 3: Solving a Linear System of Equations via
+Gauss-Jordan Elimination using OpenMP*
+Winter 2024
+1 Background
+Consider the problem of solving the following linear system of equations
+a11x1 + a12x2 + ... + a1nxn = b1
+a21x1 + a22x2 + ... + a2nxn = b2
+... ...
+an1x1 + an2x2 + ... + annxn = bn.
+By denoting a coefficient matrix of
+A =
+
+
+a11 a12 ... a1n
+a21 a22 ... a2n
+... ... ... ...
+an1 an2 ... ann
+
+
+,
+a constant vector of
+⃗b =
+
+
+b1
+b2
+...
+bn
+
+
+,
+*
+In this manual, all the indices start from 1.
+1
+ECE420: Lab 3 University of Alberta
+and a variable vector of
+⃗x =
+
+
+x1
+x2
+...
+xn
+
+
+,
+the linear system of equations can be represented as
+A · ⃗x = ⃗b,
+or characterized as the augmented matrix G,
+G = {A|
+⃗b}
+=
+
+
+a11 a12 ... a1n b1
+a21 a22 ... a2n b2
+... ... ... ... ...
+an1 an2 ... ann bn
+
+
+.
+Since an augmented matrix can be mapped back to a linear system of equations,
+and vice versa, any operation on the original system of equations can be mapped
+to a corresponding equivalent operation on the augmented matrix G. There are 3
+types of linear operations (or row operations) that will not change the solution(s)
+of the linear system of equations:
+1. interchanging any two rows;
+2. multiplying each element of a row by a nonzero scalar;
+3. adding onto a row with a scalar multiple of another row.
+For these row operations, we use the following notations:
+1. Ri ↔ Rj
+: interchange the i
+th row and the j
+th row;
+2. αRi
+: multiply each element of row i by a nonzero α;
+3. Ri + αRj
+: add onto row i with the product between scalar α and row j.
+To solve the linear system of equations, the basic idea is to transform the
+original linear system into an equivalent new system through a series of linear
+operations. The new system should be reduced to a good form such that every
+equation (row) in the system has exactly one variable with nonzero coefficient,
+from which we can simply “read” the solutions. In other words, the resultant
+2
+ECE420: Lab 3 University of Alberta
+augmented matrix should be in the following form:
+
+
+d11 0 ... 0 b
+′
+1
+0 d22 ... 0 b
+′
+2
+... ... ... ... ...
+0 0 ... dnn b
+′
+n
+
+
+.
+The resultant augmented matrix is obtained through Gauss-Jordan Elimination.
+1.1 Gaussian Elimination with Partial Pivoting
+Gaussian Elimination transforms the augmented matrix into its equivalent “upper
+triangular” form, in which the elements below the main diagonal are all zeros. It
+iteratively eliminates the elements below the main diagonal from the first column
+to the last column via row operations. Algorithm 1 describes this procedure.
+Note that the partial pivoting is important in this procedure, as it avoids cases
+where ukk is zero or close to zero. Thus, with partial pivoting, the program becomes
+more numerically stable. Also, note that in the row replacement operation, j starts
+from k, since the first k − 1 elements are always zero in this algorithm.
+1.2 Jordan Elimination
+After obtaining the “upper triangular” U from Gaussian Elimination, Jordan Elimination then transforms the matrix into its final diagonal form. The basic idea is
+to iteratively eliminate the elements above the main diagonal for each column, one
+after another. Algorithm 2 describes this procedure.
+Note that the inner for loop performs row replacement. However, for each row,
+only dik and di(n+1) need to be updated, since elements on the other columns stay
+the same.
+After obtaining D, the desired solution ⃗x can be computed by
+xi = di(n+1)/dii, for any i.
+3
+ECE420: Lab 3 University of Alberta
+Algorithm 1 Gaussian Elimination
+Input: An augmented matrix G = {A|
+⃗b}, where A = (aij ) is an n×n matrix
+and ⃗b = (bi) is an n-dimensional vector.
+Output: The augmented matrix U (the elements are denoted as uij ) that is
+equivalent to G and is in the “upper triangular” form.
+Initially, U ← G
+for k = 1 to n − 1 do/*eliminate elements below the diagonal to zero one
+column after another*/
+/*Pivoting*/
+In U, from row k to row n, find the row kp that has the maximum absolute
+value of the element in the k
+th column
+Swap row k and row kp
+/*Elimination*/
+for i = k + 1 to n do
+temp = uik/ukk
+for j = k to n + 1 do
+uij ← uij − temp · ukj/*row replacement*/
+endfor
+endfor
+endfor
+4
+
+
+Here is the rest of my lab instructions:
+ECE420: Lab 3 University of Alberta
+Algorithm 2 Jordan Elimination
+Input: The output of the Gaussian Elimination U (an n × (n + 1) matrix).
+Output: The augmented matrix D (with elements denoted by dij ) that is
+equivalent to G and is in our final target form.
+Initially, D ← U
+for k = n to 2 do/*eliminate elements to zero for each column one after
+another*/
+for i = 1 to k − 1 do/*row replacement one row after another*/
+di(n+1) ← di(n+1) − dik/dkk · dk(n+1)
+dik ← 0
+endfor
+endfor
+1.3 An Example
+We give an example here to demonstrate the described algorithms. Consider a
+linear system of equations:
+2x1 + 4x2 − 2x3 = 3
+−4x1 − 8x2 + 5x3 = −4
+4x1 + 4x2 − 5x3 = 4.
+The corresponding augmented matrix is
+
+
+2 4 −2 3
+−4 −8 5 −4
+4 4 −5 4
+
+
+The Gauss-Jordan Elimination with partial pivoting on it will be
+5
+ECE420: Lab 3 University of Alberta
+
+
+2 4 −2 3
+−4 −8 5 −4
+4 4 −5 4
+
+
+R1↔R2 −−−−→
+
+
+−4 −8 5 −4
+2 4 −2 3
+4 4 −5 4
+
+ (pivoting)
+R2+ 1
+2 R1
+−−−−−→
+
+
+−4 −8 5 −4
+0 0 1
+2
+1
+4 4 −5 4
+
+
+R3+R1 −−−−→
+
+
+−4 −8 5 −4
+0 0 1
+2
+1
+0 −4 0 0
+
+
+R2↔R3 −−−−→
+
+
+−4 −8 5 −4
+0 −4 0 0
+0 0 1
+2
+1
+
+ (pivoting; it happens to be the end of Gaussian Elimination)
+R1−10R3 −−−−−→
+
+
+−4 −8 0 −14
+0 −4 0 0
+0 0 1
+2
+1
+
+ (starting Jordan Elimination)
+R1−2R2 −−−−→
+
+
+−4 0 0 −14
+0 −4 0 0
+0 0 1
+2
+1
+
+
+6
+ECE420: Lab 3 University of Alberta
+2 Task and Requirement
+Task: Using OpenMP, implement a parallelized program to solve linear systems
+of equations through Gauss-Jordan Elimination with partial pivoting. The input
+will be a coefficient matrix A and a vector ⃗b. The output will be a vector ⃗x, where
+A · ⃗x = ⃗b.
+
+
+Requirements and Remarks:
+ Some helper scripts are provided in “Development Kit Lab 3”. Specifically, compile and run “datagen.c” to generate the input data. For marking
+purposes, use the functions Lab3LoadInput to load your input data and
+Lab3SaveOutput to save your output data.
+ Time measurement on the Gauss-Jordan Elimination computation time should
+be implemented. Note that the computation time should account for overhead caused by the parallelization strategy, but should not include the matrix
+loading or saving time.
+ The number of threads should be the only command line argument passed
+to your program.
+ Optimize the performance of your implementation. This entails that both
+your underlying program code and the OpenMP parallelization strategy must
+be efficient.
+ When implementing your program, you do not need to consider the singular
+cases, i.e., a linear system with no solution or an infinite number of solutions.
+The input data generated by “datagen.c” will avoid such cases.
+ You do need to include the partial pivoting procedure in your code to make
+the computed results correct and numerically stable.
+ Make sure that your program works on the VM.
+Submission: One member of each team is required to submit a zip file to eClass
+before the submission deadline. While we do not enforce a naming convention
+7
+ECE420: Lab 3 University of Alberta
+for the submissions, a good template is “user** lab3.zip” (where ** is the user
+number). The zip file should contain the following:
+1. “Makefile”: By executing the make command, the solution executable named
+“main” should be generated. Please do not use any optimization flags (i.e.
+no -O3).
+2. Solution source files: You should include all source files necessary to compile
+your solution executable. Note that you do not need to include “datagen.c”.
+Also, do not include any input/output data file or compiled executable.
+3 Marking Guideline
+3.1 Marking Session
+Each group is required to present a short demo of their code within an appointed
+in-lab time-slot. Each demo consists of the following components:
+1. Demo: Upload and compile your eClass submission and verification code
+(to be provided during the marking session) in your VM. Demonstrate that
+your code works for different matrix sizes and different thread counts, as
+specified by the marker (a TA or LI). This includes verifying the correctness
+of your results and comparing the Gauss-Jordan Elimination computation
+time achieved relative to the optimal results prepared by the LI and TAs.
+2. Presentation: Provide a short (1-minutes) verbal explanation of the program design. Focus on the strategy implemented to minimize the runtime of
+the Gauss-Jordan Elimination program.
+3. Group Response: The marker will ask some questions to the group. Marks
+will be assigned to the group based on their collective response to these
+questions.
+4. Individual Response: The marker will ask some questions to each group
+member. Marks will be assigned to each individual based on their individual
+response (without assistance from other group members) to these questions.
+8
+ECE420: Lab 3 University of Alberta
+To expedite the marking process, please rehearse your demo beforehand. Be aware
+that:
+1. You should practice the process of loading, unzipping, and compiling your
+eClass submission in the VM in an efficient manner.
+2. The marking process is timed. While there should be ample time for the
+demo, the marker may cut you off if the demo runs over the time limit.
+3. The questions are sampled from a pool, and may be different for different
+groups.
+4. The contents of the questions asked by the marker may include, but are not
+limited to:
+(a) explaining observations from the results,
+(b) describing anticipated program performance under certain scenarios,
+(c) providing potential improvements on the existing solution to address
+specific scenarios,
+(d) describing certain components within the solution code,
+(e) explaining concepts and techniques learned in the lecture that are relevant to this lab.
+3.2 Marking Rubric
+Successful code compilation and execution (generates correct results): 1
+Runtime is competitive and comparable to the optimal results: 1
+Group questions: 2
+Individual questions: 1
+Total: 5
+9
+
+Here is the codebase provided to us:
+datagen.c:
+/*
+Generate a non-singular matrix and a vector and save the output. (the values are in precision double)
+
+-----
+Compiling:
+    > gcc datagen.c Lab3IO.c -o datagen
+
+-----
+Synopsis:
+    datagen [-sbpo]
+
+-----
+Options:
+    -s    specify the size of the matrices (default 100) 
+    -b    upper bound of the absolute value of the most elements (default 100)
+    -p    print the result
+    -o    specify the output path (default "./data_input") 
+
+-----
+Outputs:
+    Output file:
+    data_input
+
+-----
+Error returns:
+    -1    unexpected options
+    -2   fail to open file 
+
+-----
+Example:
+    >datagen 
+    generate 100 by 100 non singular double matrix and a vector b with most elements between -100 and 100 in "./data_input"
+   
+    >datagen -s 1000 -b 10 -p
+    generate 1000 by 1000 non singular double matrix and a vector b with most elements between -10 and 10 in "./data_input", and print the result on the screen.
+*/
+
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <time.h>
+#include "Lab3IO.h"
+
+#define DECIMAL 100.0
+
+int MatMul(int, double**, double**, double**);
+int MatGen(int, double**, double);
+int GenPerm(int, double**);
+
+int main (int argc, char* argv[]){   
+    int i, j, option;
+    int size = 100;
+    int b_print = 0;
+    int range = 100;
+    double **A, **T, **S;
+    double *b;
+    double temp;
+    char* OUTPATH = "data_input";
+    FILE* fp;
+
+    srand(time(NULL));
+
+    while ((option = getopt(argc, argv, "s:b:po:")) != -1)
+        switch(option){
+            case 's': size = strtol(optarg, NULL, 10); break;
+            case 'b': range = strtol(optarg, NULL, 10);break;
+            case 'p': b_print = 1; break;
+            case 'o': OUTPATH = optarg; break;
+            case '?': printf("Unexpected Options. \n"); return -1;
+        }
+    
+    /*Generate the data*/
+    A = CreateMat(size, size);
+    T = CreateMat(size, size);
+    S = CreateMat(size, size);
+    b = malloc(size * sizeof(double));
+    for (i = 0; i < size; ++i)
+        for (j = 0; j < size; ++j){
+            A[i][j] = 0;
+            T[i][j] = 0;
+        }
+    MatGen(size, T, (double)range);
+    GenPerm(size, A);
+    MatMul(size, T, A, S);
+    for (i = 0; i < size; ++i){
+        temp = (double)(random() % (int)(range * DECIMAL)) / DECIMAL;
+        if (random() % 2)
+            temp *= -1;
+        b[i] = temp;
+    }
+    /*Output the data*/
+    if ((fp = fopen(OUTPATH,"w")) == NULL){
+        printf("Fail to open a file to save the data. \n");
+        return -2;
+    }
+    fprintf(fp, "%d\n\n", size);
+    for (i = 0; i < size; ++i){
+        for (j = 0; j < size; ++j)
+            fprintf(fp, "%lf\t", S[i][j]);
+        fprintf(fp, "\n");
+    }
+    fprintf(fp, "\n");
+    for (i = 0; i < size; ++i)
+        fprintf(fp, "%lf\n", b[i]);
+    fclose(fp);
+    /*Print the result if neccesary*/
+    if (b_print){
+        printf("The problem size is %d.\n", size);
+        printf("============\n The A is \n============\n");
+        PrintMat(S, size, size);
+        printf("============\n The b is \n============\n");
+        PrintVec(b, size);
+    }
+    DestroyMat(A, size);
+    DestroyMat(T, size);
+    DestroyMat(S, size);
+    free(b);
+    return 0;
+}
+
+int MatGen(int n, double** S, double range){
+    int i,j;
+    double temp;
+    /*Generate a random matrix*/
+    for (i = 0; i < n; ++i){
+        for (j = 0; j < n; ++j){
+            temp = (double)(random() % (int)(DECIMAL * range)) / DECIMAL;
+            if (random() % 2)
+                temp *= -1;
+            S[i][j] = temp;
+        }
+    }
+    /*Make it row dominant*/
+    for (i = 0; i < n; ++i){
+        temp = 0;
+        for (j = 0; j < n; ++j)
+            if (S[i][i] * S[i][j] > 0)
+                temp += S[i][j];
+            else
+                temp -= S[i][j];
+        S[i][i] += temp / n * 10;
+    }
+    return 0;
+}
+
+int MatMul(int n, double** A, double** T, double** S){
+    int i, j, k;
+    for (i = 0; i < n; ++i)
+        for (j = 0; j < n; ++j){
+            S[i][j]=0;
+            for (k = 0; k < n; ++k)
+                S[i][j] += A[i][k] * T[k][j];
+        }
+    return 0;
+}
+
+int GenPerm(int n, double** A){
+    int* flag;
+    int i, j, k;
+    int remain;
+    int index;
+    remain = n;
+    flag = malloc(n * sizeof(int));
+    for (i = 0; i < n; ++i)
+        flag[i] = 0;
+
+    for (i = 0; i < n; ++i){
+        index = random() % remain + 1;
+        j = 0; k = -1;
+        while (j < index){
+            ++k;
+            if (flag[k] == 0)
+                ++j;
+        }
+        A[i][k] = 1.0;
+        flag[k] = 1; 
+        --remain;
+    }
+    free(flag);
+    return 0;
+}
+
+Lab3IO.c:
+#include <stdio.h>
+#include <stdlib.h>
+#include "Lab3IO.h"
+
+int Lab3LoadInput(double ***A, int *size){
+/*
+    Allocate memory and load the input data for Lab 3. The returned matrix is the augmented size by (size+1) matrix [A|b]
+
+    -----
+    Input:
+    int ***A    pointer to the augmented matrix [A|b]
+    int *size   pointer to the rows of the augmented matrix [A|b]. (Number of columns will be 1 more)
+
+    Note: original files should be the output of the datagen.c with name "data_input" in the same folder
+
+    -----
+    Output:
+    Generated matrix will be passed back to the array *A, along with the matrix size in *size 
+
+    -----
+    Example:
+    An integer array pointer and a integer should be defined before calling this function:
+    int **A; int size; 
+    call this function as
+    Lab3LoadInput(&A, &size);
+*/
+
+    FILE* ip;
+    int i,j;
+
+    if ((ip = fopen("data_input","r")) == NULL){
+            printf("error opening the input data.\n");
+            return 1;
+    }
+    fscanf(ip, "%d\n\n", size);
+    (*A) = CreateMat(*size, (*size) + 1);
+    for (i = 0; i < *size; ++i){
+        for(j = 0; j < *size; ++j)
+            fscanf(ip, "%lf\t", &(*A)[i][j]);
+        fscanf(ip, "\n");
+    }
+    fscanf(ip, "\n");
+    for (i = 0; i < *size; ++i)
+        fscanf(ip, "%lf\n", &(*A)[i][(*size - 1) + 1]);
+    fclose(ip);
+    return 0;
+}
+
+int Lab3SaveOutput(double* x, int size, double Time){
+/*
+    Save the data to the file for Lab 3 
+
+    -----
+    Input:
+    double* x     pointer to the result vector 
+    int size      the vector size
+    double Time   calulation time
+    
+    -----
+    Output:
+    data_output the stored data
+
+    -----
+    Example:
+    Lab3SaveOutput(x, size, Time);
+*/
+
+    FILE* op;
+    int i;
+
+    if ((op = fopen("data_output","w")) == NULL){
+        printf("Error opening the output file.\n");
+        return 1;
+    }
+
+    fprintf(op, "%d\n", size);
+    for (i = 0; i < size; ++i)
+        fprintf(op, "%e\t", x[i]);
+    fprintf(op, "\n%lf", Time);
+    fclose(op);
+    return 0;
+}
+ 
+double** CreateMat(int NumRow, int NumCol){
+    /* Allocate memory for an array
+    -----
+    Input:
+        NumRow    Number of rows
+        NumCol    Number of columns
+    -----
+    Output:
+        ** A    pointer to the new int array
+    */
+    int i;
+    double ** A;
+
+    A = malloc(NumRow * sizeof(double*));
+    for (i = 0; i < NumRow; ++i){
+        A[i] = malloc(NumCol * sizeof(double));
+    }
+    return A;
+}
+ 
+int DestroyMat(double** A, int NumRow){
+    /* Free the memory
+    -----
+    Input:
+        NumRow    Number of rows
+    */
+    int i;
+    for (i = 0; i < NumRow; ++i){
+        free(A[i]);
+    }
+    free(A);
+    return 0;
+}
+
+int PrintMat(double** A, int NumRow, int NumCol){
+    /* Print an array
+    -----
+    Input:
+        A         pointer to the array
+        NumRow    Number of rows
+        NumCol    Number of columns
+    */
+    int i, j;
+    for (i = 0; i < NumRow; ++i){
+        for (j = 0; j < NumCol; ++j){
+            printf("%f\t", A[i][j]);
+        }
+        printf("\n");
+    }
+    return 0;
+}
+
+double* CreateVec(int size){
+    double *b;
+    b =  malloc(size * sizeof(double));
+    return b;
+}
+
+int PrintVec(double* b, int size){
+    int i;
+    for (i = 0; i< size; ++i){
+        printf("%f\n", b[i]);
+    }
+    return 0;
+}
+
+int DestroyVec(double* b){
+    free(b);
+    return 0;
+}
+
+Lab3IO.h:
+/*
+Header for the Lab 3 IO functions
+*/
+#ifndef LAB3_H_INCLUDE
+#define LAB3_H_INCLUDE
+
+int Lab3LoadInput(double ***A, int *size);
+int Lab3SaveOutput(double* x, int size, double time);
+
+double** CreateMat(int NumRow, int NumCol);
+int DestroyMat(double** A, int NumRow);
+int PrintMat(double** A, int NumRow, int NumCol);
+double* CreateVec(int size);
+int PrintVec(double* b, int size);
+int DestroyVec(double* b);
+#endif
+
+ReadMe:
+Readme for ECE 420 Lab3 Script Kit
+Feb. 2024
+
+=====
+Overview:
+    There are two groups of scripts in this kit
+
+-----
+    Data generating program:
+    datagen.c      source file for the input date generation program
+
+-----
+    Important functions:
+    timer.h        macro definition for the time measurement
+    Lab3IO.h       header for the Lab3IO.c, needs to be included if call the IOs directly from Lab3IO.c
+    Lab3IO.c       source file for the IO functions, needs to be referred in the compiler line if the functions are called in the program
+=====
+Please also find the detailed instructions in the comments of the individual files.
+
+
+
+timer.h:
+/*
+Macro for time measuring.
+
+To use this macro, you need to declare two double type variables 
+to store the start time and the end time. The macro GET_TIME() will
+return the time to the variable you put in. e.g., for your program, 
+you need to declare two variables first:
+double start, end;
+at where you want to record the starting time, put
+GET_TIME(start);
+at where you want to record the end time, put
+GET_TIME(end);
+Then the elapsed time would be
+end-start
+
+*/
+
+#ifndef _TIMER_H_
+#define _TIMER_H_
+
+#include <sys/time.h>
+
+#define GET_TIME(now) { \
+   struct timeval t; \
+   gettimeofday(&t, NULL); \
+   now = t.tv_sec + t.tv_usec/1000000.0; \
+}
+
+#endif
+
+
+
+
+Modify this codebase, create and/or edit files within the codebase in order to meet ALL of the requirements of the program outlined in the lab manual
+
