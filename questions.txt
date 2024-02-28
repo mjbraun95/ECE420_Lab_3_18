@@ -1,3 +1,5 @@
 Why are these array values outside of the range defined in datagen.c?
 Where should we put the GET_TIME functions in which lines?
 Is this the kind of output we should expect?
+Is our timing efficient?
+Why is our time increasing as our # of threads increase?

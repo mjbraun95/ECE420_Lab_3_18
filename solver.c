@@ -5,13 +5,29 @@
 #include "timer.h"
 #include <omp.h>
 
-int main(void) {
+int main(int argc, char* argv[]) {
     int size;
     double** matrix;
     double start, end;
     double temp;
     int i, j, k;
-    
+    int num_threads;
+
+    // Check if the number of threads is provided
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <number_of_threads>\n", argv[0]);
+        return 1;
+    }
+
+    num_threads = atoi(argv[1]);
+    if (num_threads <= 0) {
+        fprintf(stderr, "Number of threads must be positive\n");
+        return 1;
+    }
+
+    // Set the number of threads
+    omp_set_num_threads(num_threads);
+
     // Load input data
     if (Lab3LoadInput(&matrix, &size)) {
         fprintf(stderr, "Error loading matrix\n");
@@ -31,9 +47,9 @@ int main(void) {
         }
         if (k != max) {
             // Swap rows
-            double* temp = matrix[k];
+            double* tempPtr = matrix[k];
             matrix[k] = matrix[max];
-            matrix[max] = temp;
+            matrix[max] = tempPtr;
         }
 
         // Jordan Elimination
@@ -50,7 +66,7 @@ int main(void) {
     }
 
     // Normalize the diagonal
-    #pragma omp parallel for private(i, j)
+    #pragma omp parallel for private(i, j) shared(matrix, size)
     for (i = 0; i < size; ++i) {
         temp = matrix[i][i];
         for (j = i; j < size + 1; ++j) {
@@ -58,13 +74,13 @@ int main(void) {
         }
     }
 
-    GET_TIME(end);
-
     // Extract solution
     double* solution = (double*) malloc(size * sizeof(double));
     for (i = 0; i < size; ++i) {
         solution[i] = matrix[i][size];
     }
+
+    GET_TIME(end);
 
     Lab3SaveOutput(solution, size, end - start);
 
