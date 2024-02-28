@@ -42,6 +42,7 @@ Example:
 #include "Lab3IO.h"
 
 #define DECIMAL 100.0
+#define random() rand()
 
 int MatMul(int, double**, double**, double**);
 int MatGen(int, double**, double);
@@ -49,9 +50,9 @@ int GenPerm(int, double**);
 
 int main (int argc, char* argv[]){   
     int i, j, option;
-    int size = 100;
+    int size = 3;
     int b_print = 0;
-    int range = 100;
+    int range = 3;
     double **A, **T, **S;
     double *b;
     double temp;

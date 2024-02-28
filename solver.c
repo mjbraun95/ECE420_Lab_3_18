@@ -1,10 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "Lab3IO.h"
 #include <omp.h>
+#include "Lab3IO.h"
+#include "timer.h"  // Make sure to include this header for GET_TIME
 
 int main(void) {
+    // At the beginning of your main function or where the computation starts
+    double start, end, elapsed_time;
+    GET_TIME(start);
     double** matrix;
     int size;
     int i, j, k;
@@ -44,8 +48,12 @@ int main(void) {
         solution[i] = matrix[i][size];
     }
 
+    // After the computation is finished
+    GET_TIME(end);
+    elapsed_time = end - start;
+
     // Save the solution and clean up
-    Lab3SaveOutput(solution, size);
+    Lab3SaveOutput(solution, size, elapsed_time);
     for (i = 0; i < size; i++) {
         free(matrix[i]);
     }

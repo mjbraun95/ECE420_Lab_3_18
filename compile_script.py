@@ -16,7 +16,7 @@ def compile_contents_to_file(output_filename, script_filename, ignore_patterns=[
     for root, dirs, files in os.walk(current_directory):
         # Filter directories to ignore
         dirs[:] = [d for d in dirs if not should_ignore(os.path.join(root, d))]
-        
+
         for file in files:
             # Construct the file path
             file_path = os.path.join(root, file)
