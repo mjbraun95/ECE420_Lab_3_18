@@ -43,6 +43,7 @@ Example:
 #include "Lab3IO.h"
 
 #define DECIMAL 100.0
+#define random() rand()
 
 int MatMul(int, double**, double**, double**);
 int MatGen(int, double**, double);
@@ -50,9 +51,9 @@ int GenPerm(int, double**);
 
 int main (int argc, char* argv[]){   
     int i, j, option;
-    int size = 100;
+    int size = 3;
     int b_print = 0;
-    int range = 100;
+    int range = 3;
     double **A, **T, **S;
     double *b;
     double temp;
@@ -180,6 +181,35 @@ int GenPerm(int n, double** A){
     free(flag);
     return 0;
 }
+
+data_input:
+3
+
+-1.310000	14.836667	0.320000	
+-2.350000	0.860000	11.480000	
+-10.146667	-1.210000	-0.560000	
+
+0.660000
+-2.680000
+1.680000
+
+
+data_input_example_1.3:
+3
+
+2.0	4.0	-2.0	
+-4.0	-8.0	5.0	
+4.0	4.0	-5.0	
+
+3.0
+-4.0
+4.0
+
+
+data_output:
+3
+-1.551439e-01	3.656513e-02	-2.679472e-01	
+0.001023
 
 Lab3IO.c:
 #include <stdio.h>
@@ -355,8 +385,21 @@ int DestroyVec(double* b);
 #endif
 
 Makefile:
-all:
-	gcc -fopenmp solver.c Lab3IO.c -o solver
+CC=gcc
+CFLAGS=-Wall -g
+LDFLAGS=-lm -fopenmp
+
+# Compile and link the program
+all: datagen solver
+
+datagen: datagen.c Lab3IO.c
+	$(CC) $(CFLAGS) datagen.c Lab3IO.c -o datagen $(LDFLAGS)
+
+solver: solver.c Lab3IO.c
+	$(CC) $(CFLAGS) solver.c Lab3IO.c -o solver $(LDFLAGS)
+
+clean:
+	rm -f datagen solver *.o
 
 ReadMe:
 Readme for ECE 420 Lab3 Script Kit
@@ -384,10 +427,14 @@ solver.c:
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "Lab3IO.h"
 #include <omp.h>
+#include "Lab3IO.h"
+#include "timer.h"  // Make sure to include this header for GET_TIME
 
 int main(void) {
+    // At the beginning of your main function or where the computation starts
+    double start, end, elapsed_time;
+    GET_TIME(start);
     double** matrix;
     int size;
     int i, j, k;
@@ -427,8 +474,12 @@ int main(void) {
         solution[i] = matrix[i][size];
     }
 
+    // After the computation is finished
+    GET_TIME(end);
+    elapsed_time = end - start;
+
     // Save the solution and clean up
-    Lab3SaveOutput(solution, size);
+    Lab3SaveOutput(solution, size, elapsed_time);
     for (i = 0; i < size; i++) {
         free(matrix[i]);
     }

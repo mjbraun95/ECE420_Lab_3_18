@@ -55,6 +55,7 @@ ignore_patterns = [
     r'\.vscode', # Ignore .vscode directories
     r'\.png$', # Ignore PNG files
     r'\.txt$', # Ignore TXT files
+    r'\.exe$', # Ignore EXE files
     # Add more patterns as needed
 ]
 
