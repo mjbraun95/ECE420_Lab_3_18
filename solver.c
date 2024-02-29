@@ -35,7 +35,6 @@ int main(int argc, char* argv[]) {
     }
 
     GET_TIME(start);
-
     // Gauss-Jordan Elimination with Partial Pivoting
     for (k = 0; k < size; ++k) {
         // Partial Pivoting
@@ -53,14 +52,24 @@ int main(int argc, char* argv[]) {
         }
 
         // Jordan Elimination
+        // #pragma omp parallel for private(i, j, temp) shared(matrix, size, k) schedule(dynamic, 10)
+        // for (i = k; i < size; ++i) {
+        //     if (i == k) continue;
+        //     temp = matrix[i][k] / matrix[k][k];
+        //     for (j = k; j < size + 1; ++j) {  // Start from k+1 to skip over zeros
+        //         matrix[i][j] -= temp * matrix[k][j];
+        //     }
+        // }
+
         // setting dynamic static can schedule
-        #pragma omp parallel for private(i, j, temp) shared(matrix, size, k) schedule(dynamic)
-        // #pragma omp parallel for private(i, j, temp) shared(matrix, size, k)
+        #pragma omp parallel for private(i, j, temp) shared(matrix, size, k)
+        // #pragma omp parallel for private(i, j, temp) shared(matrix, size, k) schedule(dynamic, 10)
         for (i = 0; i < size; ++i) {
             if (i != k) {
                 temp = matrix[i][k] / matrix[k][k];
+                // if (i == k) continue;
                 for (j = k; j < size + 1; ++j) {
-                    if (i == k) continue;
+                    // if (i == k) continue;
                     matrix[i][j] -= temp * matrix[k][j];
                 }
             }
@@ -68,8 +77,8 @@ int main(int argc, char* argv[]) {
     }
 
     // Normalize the diagonal
-    #pragma omp parallel for private(i, j) shared(matrix, size) schedule(dynamic)
-    // #pragma omp parallel for private(i, j) shared(matrix, size)
+    #pragma omp parallel for private(i, j, temp) shared(matrix, size, k)
+    // #pragma omp parallel for private(i, j, temp) shared(matrix, size, k) schedule(dynamic, 13)
     for (i = 0; i < size; ++i) {
         temp = matrix[i][i];
         for (j = i; j < size + 1; ++j) {

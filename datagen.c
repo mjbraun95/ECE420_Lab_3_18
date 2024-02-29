@@ -50,7 +50,7 @@ int GenPerm(int, double**);
 
 int main (int argc, char* argv[]){   
     int i, j, option;
-    int size = 100;
+    int size = 1000;
     int b_print = 0;
     int range = 100;
     double **A, **T, **S;

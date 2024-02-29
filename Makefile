@@ -1,6 +1,6 @@
 # Compile solver
 # gcc -Wall -g solver.c Lab3IO.c -o solver -lm -fopenmp
-# gcc -Wall -g datagen.c -o datagen -lm -fopenmp
+# gcc -Wall -g datagen.c Lab3IO.c -o datagen -lm -fopenmp
 
 CC=gcc
 CFLAGS=-Wall -g

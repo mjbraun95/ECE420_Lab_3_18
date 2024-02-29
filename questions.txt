@@ -3,3 +3,8 @@ Where should we put the GET_TIME functions in which lines?
 Is this the kind of output we should expect?
 Is our timing efficient?
 Why is our time increasing as our # of threads increase?
+
+<2x speedup from 1->4 threads
+1 thread speed is acceptable
+
+Should be 
