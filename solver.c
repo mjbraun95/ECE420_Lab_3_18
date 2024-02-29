@@ -53,7 +53,9 @@ int main(int argc, char* argv[]) {
         }
 
         // Jordan Elimination
-        #pragma omp parallel for private(i, j, temp) shared(matrix, size, k)
+        // setting dynamic static can schedule
+        #pragma omp parallel for private(i, j, temp) shared(matrix, size, k) schedule(dynamic)
+        // #pragma omp parallel for private(i, j, temp) shared(matrix, size, k)
         for (i = 0; i < size; ++i) {
             if (i != k) {
                 temp = matrix[i][k] / matrix[k][k];
@@ -66,7 +68,8 @@ int main(int argc, char* argv[]) {
     }
 
     // Normalize the diagonal
-    #pragma omp parallel for private(i, j) shared(matrix, size)
+    #pragma omp parallel for private(i, j) shared(matrix, size) schedule(dynamic)
+    // #pragma omp parallel for private(i, j) shared(matrix, size)
     for (i = 0; i < size; ++i) {
         temp = matrix[i][i];
         for (j = i; j < size + 1; ++j) {
@@ -74,13 +77,16 @@ int main(int argc, char* argv[]) {
         }
     }
 
+    // Before formatting, after join
+    GET_TIME(end);
+
+
     // Extract solution
     double* solution = (double*) malloc(size * sizeof(double));
     for (i = 0; i < size; ++i) {
         solution[i] = matrix[i][size];
     }
 
-    GET_TIME(end);
 
     Lab3SaveOutput(solution, size, end - start);
 
