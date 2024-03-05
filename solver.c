@@ -35,67 +35,96 @@ int main(int argc, char* argv[]) {
     }
 
     GET_TIME(start);
+
     // Gauss-Jordan Elimination with Partial Pivoting
-    for (k = 0; k < size; ++k) {
+    for (k = 0; k < size - 1; k++) {
         // Partial Pivoting
         int max = k;
+        #pragma omp parallel for private(i) shared(matrix, size, k) schedule(static)
         for (i = k + 1; i < size; i++) {
             if (fabs(matrix[i][k]) > fabs(matrix[max][k])) {
+                #pragma omp critical
                 max = i;
             }
         }
-        if (k != max) {
-            // Swap rows
+
+        // Swap rows
+        if (max != k) {
             double* tempPtr = matrix[k];
             matrix[k] = matrix[max];
             matrix[max] = tempPtr;
         }
 
-        // Jordan Elimination
-        // #pragma omp parallel for private(i, j, temp) shared(matrix, size, k) schedule(dynamic, 10)
-        // for (i = k; i < size; ++i) {
-        //     if (i == k) continue;
-        //     temp = matrix[i][k] / matrix[k][k];
-        //     for (j = k; j < size + 1; ++j) {  // Start from k+1 to skip over zeros
-        //         matrix[i][j] -= temp * matrix[k][j];
+        // printf("After swapping:\n");
+        // for (i = 0; i < size; ++i) {
+        //     for (j = 0; j < size + 1; ++j) {
+        //         printf("%f ", matrix[i][j]);
         //     }
+        //     printf("\n");
         // }
 
-        // setting dynamic static can schedule
-        #pragma omp parallel for private(i, j, temp) shared(matrix, size, k)
-        // #pragma omp parallel for private(i, j, temp) shared(matrix, size, k) schedule(dynamic, 10)
-        for (i = 0; i < size; ++i) {
-            if (i != k) {
-                temp = matrix[i][k] / matrix[k][k];
-                // if (i == k) continue;
-                for (j = k; j < size + 1; ++j) {
-                    // if (i == k) continue;
-                    matrix[i][j] -= temp * matrix[k][j];
-                }
+        // Elimination
+        #   pragma omp parallel for private(i, j, temp) shared(matrix, size, k) schedule(static)
+        for (i = k + 1; i < size; ++i) {
+            temp = matrix[i][k] / matrix[k][k];
+            for (j = k; j <= size; ++j) {
+                matrix[i][j] -= temp * matrix[k][j];
             }
         }
+
+        // printf("After elimination:\n");
+        // for (i = 0; i < size; ++i) {
+        //     for (j = 0; j < size + 1; ++j) {
+        //         printf("%f ", matrix[i][j]);
+        //     }
+        //     printf("\n");
+        // }
+
+        // printf("\n\n");
+
     }
 
-    // Normalize the diagonal
-    #pragma omp parallel for private(i, j, temp) shared(matrix, size, k)
-    // #pragma omp parallel for private(i, j, temp) shared(matrix, size, k) schedule(dynamic, 13)
-    for (i = 0; i < size; ++i) {
-        temp = matrix[i][i];
-        for (j = i; j < size + 1; ++j) {
-            matrix[i][j] /= temp;
+    // printf("FINAL FORM:\n");
+    // for (i = 0; i < size; ++i) {
+    //     for (j = 0; j < size + 1; ++j) {
+    //         printf("%f ", matrix[i][j]);
+    //     }
+    //     printf("\n");
+    // }
+    // printf("\n");
+
+    // // Normalize the diagonal
+    // #pragma omp parallel for private(i, j) shared(matrix, size) schedule(auto)
+    // for (i = 0; i < size; ++i) {
+    //     temp = matrix[i][i];
+    //     for (j = i; j < size + 1; ++j) {
+    //         matrix[i][j] /= temp;
+    //     }
+    // }
+    #   pragma omp parallel for private(i, k) shared(matrix, size) schedule(static)
+    for (k = size-1; k >= 1; k--) {
+        for (i = 0; i < k; i++) {
+            matrix[i][size] -= (matrix[i][k]/matrix[k][k])*matrix[k][size];
+            matrix[i][k] = 0;
         }
     }
 
-    // Before formatting, after join
-    GET_TIME(end);
+    // printf("RREF FORM:\n");
+    // for (i = 0; i < size; ++i) {
+    //     for (j = 0; j < size + 1; ++j) {
+    //         printf("%f ", matrix[i][j]);
+    //     }
+    //     printf("\n");
+    // }
+    // printf("\n");
 
+    GET_TIME(end);
 
     // Extract solution
     double* solution = (double*) malloc(size * sizeof(double));
     for (i = 0; i < size; ++i) {
         solution[i] = matrix[i][size];
     }
-
 
     Lab3SaveOutput(solution, size, end - start);
 
