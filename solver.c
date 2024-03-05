@@ -93,19 +93,20 @@ int main(int argc, char* argv[]) {
     // }
     // printf("\n");
 
-    // // Normalize the diagonal
-    // #pragma omp parallel for private(i, j) shared(matrix, size) schedule(auto)
-    // for (i = 0; i < size; ++i) {
-    //     temp = matrix[i][i];
-    //     for (j = i; j < size + 1; ++j) {
-    //         matrix[i][j] /= temp;
-    //     }
-    // }
     #   pragma omp parallel for private(i, k) shared(matrix, size) schedule(static)
     for (k = size-1; k >= 1; k--) {
         for (i = 0; i < k; i++) {
             matrix[i][size] -= (matrix[i][k]/matrix[k][k])*matrix[k][size];
             matrix[i][k] = 0;
+        }
+    }
+
+    // Normalize the diagonal
+    #pragma omp parallel for private(i, j) shared(matrix, size) schedule(auto)
+    for (i = 0; i < size; ++i) {
+        temp = matrix[i][i];
+        for (j = i; j < size + 1; ++j) {
+            matrix[i][j] /= temp;
         }
     }
 
