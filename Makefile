@@ -2,6 +2,9 @@
 # gcc -Wall -g solver.c Lab3IO.c -o solver -lm -fopenmp
 # gcc -Wall -g datagen.c Lab3IO.c -o datagen -lm -fopenmp
 
+
+# gcc -Wall -g main.c Lab3IO.c -o friend -lm -fopenmp
+
 CC=gcc
 CFLAGS=-Wall -g
 LDFLAGS=-lm -fopenmp

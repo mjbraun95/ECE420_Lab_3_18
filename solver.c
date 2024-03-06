@@ -38,6 +38,7 @@ int main(int argc, char* argv[]) {
 
     // Gauss-Jordan Elimination with Partial Pivoting
     for (k = 0; k < size - 1; k++) {
+        // Jordan
         // Partial Pivoting
         int max = k;
         #pragma omp parallel for private(i) shared(matrix, size, k) schedule(static)
@@ -93,6 +94,7 @@ int main(int argc, char* argv[]) {
     // }
     // printf("\n");
 
+    // Jordan
     #   pragma omp parallel for private(i, k) shared(matrix, size) schedule(static)
     for (k = size-1; k >= 1; k--) {
         for (i = 0; i < k; i++) {
